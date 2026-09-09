@@ -1,0 +1,60 @@
+# Docker Compose alternative to docker/dev.sh.
+#
+#   docker compose -f docker/compose.yaml build jazzy
+#   docker compose -f docker/compose.yaml run --rm jazzy colcon build
+#   docker compose -f docker/compose.yaml run --rm jazzy ros2 launch movin_ros mocap.launch.py record:=auto
+#   docker compose -f docker/compose.yaml run --rm humble bash
+#
+# Both services use the host network (MOVIN Studio's UDP stream and ROS 2 discovery reach the
+# container directly), bind-mount the repository at /ws/src/MOVIN-ROS-Plugin and keep colcon build
+# products in a per-distro host cache (/ws/.cache) so the repository stays clean. Containers run as
+# MOVIN_UID:MOVIN_GID (default 1000:1000); set them to `id -u`/`id -g` when your user differs:
+#   MOVIN_UID=$(id -u) MOVIN_GID=$(id -g) docker compose -f docker/compose.yaml run --rm jazzy colcon build
+# Image variants: MOVIN_WITH_RVIZ=1 / MOVIN_WITH_RETARGETING=1 before `build` (see docker/Dockerfile).
+
+x-movin-dev: &movin-dev
+  network_mode: host
+  ipc: host
+  stdin_open: true
+  tty: true
+  user: "${MOVIN_UID:-1000}:${MOVIN_GID:-1000}"
+  working_dir: /ws
+  environment:
+    HOME: /tmp/home
+    COLCON_DEFAULTS_FILE: /etc/movin_ros/colcon_defaults.yaml
+    COLCON_LOG_PATH: /ws/.cache/log
+    DISPLAY: ${DISPLAY:-}
+    ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+
+services:
+  jazzy:
+    <<: *movin-dev
+    image: movin-ros-dev:jazzy
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        ROS_DISTRO: jazzy
+        WITH_RVIZ: ${MOVIN_WITH_RVIZ:-0}
+        WITH_RETARGETING: ${MOVIN_WITH_RETARGETING:-0}
+    volumes:
+      - ..:/ws/src/MOVIN-ROS-Plugin
+      - ${MOVIN_WS_CACHE:-~/.cache/movin_ros_ws}/jazzy:/ws/.cache
+      - ${MOVIN_RECORD_DIR:-~/movin_recordings}:/tmp/home/movin_recordings
+      - /tmp/.X11-unix:/tmp/.X11-unix
+
+  humble:
+    <<: *movin-dev
+    image: movin-ros-dev:humble
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        ROS_DISTRO: humble
+        WITH_RVIZ: ${MOVIN_WITH_RVIZ:-0}
+        WITH_RETARGETING: ${MOVIN_WITH_RETARGETING:-0}
+    volumes:
+      - ..:/ws/src/MOVIN-ROS-Plugin
+      - ${MOVIN_WS_CACHE:-~/.cache/movin_ros_ws}/humble:/ws/.cache
+      - ${MOVIN_RECORD_DIR:-~/movin_recordings}:/tmp/home/movin_recordings
+      - /tmp/.X11-unix:/tmp/.X11-unix

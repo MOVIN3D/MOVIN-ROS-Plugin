@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>movin_ros</name>
+  <version>2.0.0</version>
+  <description>Receive, record and replay real-time motion capture from MOVIN Studio in ROS 2: mocap_node publishes movin_msgs/MocapFrame, a TF skeleton and status, records the raw OSC stream to SDK-compatible .pkl files and replays them</description>
+  <maintainer email="dk.jang@movin3d.com">DK Jang</maintainer>
+  <license>MIT</license>
+  <url type="repository">https://github.com/MOVIN3D/MOVIN-ROS-Plugin</url>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>rcl_interfaces</exec_depend>
+  <exec_depend>builtin_interfaces</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>visualization_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>tf2_msgs</exec_depend>
+  <exec_depend>movin_msgs</exec_depend>
+  <exec_depend>movin_sdk_python_vendor</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <!-- bag:=true runs `ros2 bag record`; tf2_tools provides the view_frames check from the README. -->
+  <exec_depend>ros2bag</exec_depend>
+  <exec_depend>rosbag2</exec_depend>
+  <exec_depend>tf2_tools</exec_depend>
+  <!-- rviz2 is only needed for rviz:=true; export MOVIN_HEADLESS=1 to skip it in rosdep. -->
+  <exec_depend condition="$MOVIN_HEADLESS != 1">rviz2</exec_depend>
+
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+  <test_depend>launch_testing</test_depend>
+  <test_depend>launch_testing_ros</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

@@ -1,0 +1,5 @@
+# BuildKit reads <Dockerfile>.dockerignore for `docker build -f docker/Dockerfile`. Only the two
+# files the Dockerfile COPYs are sent as build context; the repository itself is bind-mounted.
+*
+!docker/colcon_defaults.yaml
+!docker/entrypoint.sh

@@ -1,0 +1,7 @@
+# Start an SDK-native raw-OSC recording (.pkl). Empty path -> auto-named file in record_dir.
+string path
+string stream_type            # "movin", "nova" or "auto"; empty -> node default
+---
+bool success
+string message
+string path

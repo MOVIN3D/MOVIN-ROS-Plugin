@@ -1,0 +1,15 @@
+# colcon defaults for docker/dev.sh and docker/compose.yaml (exported as COLCON_DEFAULTS_FILE).
+#
+# The repository is bind-mounted at /ws/src/MOVIN-ROS-Plugin and must stay free of build products;
+# build/, install/ and test results go to /ws/.cache, a per-distro host directory owned by the
+# invoking user (${MOVIN_WS_CACHE:-$HOME/.cache/movin_ros_ws}/<distro>). Logs are redirected with
+# COLCON_LOG_PATH=/ws/.cache/log. Equivalent to
+#   colcon build --build-base /ws/.cache/build --install-base /ws/.cache/install --log-base /ws/.cache/log
+build:
+  build-base: /ws/.cache/build
+  install-base: /ws/.cache/install
+test:
+  build-base: /ws/.cache/build
+  install-base: /ws/.cache/install
+test-result:
+  test-result-base: /ws/.cache/build

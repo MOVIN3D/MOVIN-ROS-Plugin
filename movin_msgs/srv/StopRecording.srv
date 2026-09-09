@@ -1,0 +1,8 @@
+# Stop the active recording. save=false discards it.
+bool save
+---
+bool success
+string message
+string path
+uint64 num_messages
+float64 duration_sec

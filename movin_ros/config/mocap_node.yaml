@@ -1,0 +1,45 @@
+# Default parameters of mocap_node (package movin_ros).
+#
+# launch/mocap.launch.py loads this file (argument params_file) and then applies its own
+# launch arguments on top, so a launch argument always wins over a value written here.
+# Every parameter is documented in the node (ros2 param describe /movin/mocap_node <name>).
+# All parameters are read once at startup and declared read-only (`ros2 param set` is rejected).
+/**:
+  ros__parameters:
+    # ---------------------------------------------------------------- source
+    mode: live                     # live | replay (read-only once the node runs)
+    host: 0.0.0.0                  # LOCAL bind address of the UDP socket (not the Studio IP)
+    port: 11235                    # UDP port MOVIN Studio streams to; 0 = ephemeral (logged)
+    recording: ""                  # replay input: SDK raw-OSC .pkl (mode: replay)
+    replay_loop: true              # restart the recording when it ends
+    replay_realtime: true          # true = recorded timing; false = as fast as the node publishes (lossless)
+    replay_exit_on_end: false      # exit 0 once a non-looping replay has finished
+
+    # -------------------------------------------------------------- recording
+    record: ""                     # "" = off, "auto" = auto-named file in record_dir, else a .pkl path
+    record_dir: "~/movin_recordings"
+    record_segment_sec: 600.0      # lossless segment rotation period; 0 = single file
+    record_stream_type: movin      # stream_type stored in the recording (movin | nova | auto)
+
+    # --------------------------------------------------------------- skeleton
+    preset: auto                   # auto | movinman | movinman_v3
+    poll_rate_hz: 120.0            # receiver polling rate (>= 15 Hz keeps the SDK 4-frame queue lossless)
+    publish_every_frame: true      # true = drain every assembled frame, false = latest frame only
+    actor_filter: ""               # publish only this actor ("" = all actors)
+
+    # ------------------------------------------------------------ coordinates
+    forward_mode: isaac_world      # coord_equivalent (Unity +Z -> ROS -Y) | isaac_world (Unity +Z -> ROS +X)
+    world_frame: world             # parent frame of every actor anchor
+    tf_prefix: movin               # anchor <tf_prefix>/<actor_id>, bones <tf_prefix>/<actor_id>/<bone>
+    skeleton_offset: [0.0, 0.0, 0.0]   # translation world_frame -> anchor, meters
+
+    # ----------------------------------------------------------------- output
+    publish_tf: true               # /tf (bones) and /tf_static (anchors)
+    publish_frame: true            # mocap_frame (movin_msgs/MocapFrame)
+    publish_markers: false         # skeleton_markers (visualization_msgs/MarkerArray); needs publish_tf
+    frame_qos_reliable: true       # mocap_frame QoS: RELIABLE/VOLATILE depth 10 (bag friendly); false = sensor data
+    stale_timeout_sec: 1.0         # status.receiving = false after this long without a frame
+
+    # -------------------------------------------------------------- lifecycle
+    retry_bind_sec: 0.0            # 0 = bind failure is fatal (exit 1); > 0 = retry every N seconds
+    max_frames: 0                  # exit 0 after publishing this many frames (0 = run forever)

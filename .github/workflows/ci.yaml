@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  colcon:
+    name: ${{ matrix.distro }} ${{ matrix.build_args || 'default' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [humble, jazzy]
+        build_args: ["", "--symlink-install"]
+    steps:
+      - name: Check out (with the MOVIN SDK submodule)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build, test and run the SDK unit tests in ros:${{ matrix.distro }}
+        run: ./docker/ci.sh ${{ matrix.distro }} ${{ matrix.build_args }}
