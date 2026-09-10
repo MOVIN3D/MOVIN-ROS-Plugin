@@ -388,8 +388,3 @@ Manual acceptance with MOVIN Studio: set the Studio destination to this computer
 `ros2 topic hz /movin/mocap_frame` against the Studio frame rate and `frames_dropped == 0` over a
 minute, record one minute with `record:=auto`, confirm `recording_info` reports about 60 s, replay
 that file with `rviz:=true`, and check `view_frames` shows `world -> movin/<actor> -> ...`.
-
-[docs/VERIFICATION.md](docs/VERIFICATION.md) records one such run against a live MOVIN Studio
-stream (receive, TF parity with the SDK forward kinematics, recording and services, replay,
-retargeting, `ros2 bag`, RViz) with the exact commands and outputs.
-

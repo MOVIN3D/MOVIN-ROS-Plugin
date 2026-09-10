@@ -25,3 +25,6 @@ bags/
 *~
 .DS_Store
 Thumbs.db
+
+# Internal working documents (design notes, implementation contract, verification logs)
+docs/internal/

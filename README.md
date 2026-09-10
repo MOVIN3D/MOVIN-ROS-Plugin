@@ -212,8 +212,6 @@ colcon test && colcon test-result --verbose          # + lint and launch tests (
 ./docker/ci.sh jazzy                                 # the CI run in a container
 ```
 
-[docs/VERIFICATION.md](docs/VERIFICATION.md) records a full run against a live MOVIN Studio stream.
-
 ## Project structure
 
 ```text
@@ -223,7 +221,7 @@ movin_ros/                mocap_node, recording_info, launch/, config/, rviz/, t
 movin_retarget/           retarget_node, launch/retarget.launch.py
 movin_g1_description/     Unitree G1 urdf/, meshes/, launch/display.launch.py, rviz/
 docker/                   Dockerfile, compose.yaml, dev.sh, ci.sh
-docs/                     REFERENCE.md, DESIGN.md, IMPLEMENTATION_SPEC.md, VERIFICATION.md
+docs/                     REFERENCE.md
 ```
 
 ## License
