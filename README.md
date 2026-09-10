@@ -107,12 +107,19 @@ ros2 launch movin_ros mocap.launch.py host:=192.168.0.25 port:=12000    # bind o
 ros2 launch movin_ros mocap.launch.py rviz:=true                        # + RViz (TF skeleton)
 ```
 
-In MOVIN Studio enable OSC output and set the **destination to this computer's IP address and
-the port above** (for example `192.168.0.25:11235`; `hostname -I` lists the local addresses).
-`host` is the *local bind address* of the receiver: `0.0.0.0` accepts packets on every
-interface, a specific address restricts reception to that interface. **`0.0.0.0` is a wildcard
-and must not be entered as the destination in MOVIN Studio.** In Docker, run with the host
-network (`dev.sh`/`compose.yaml` do); a firewall must allow inbound UDP on the port.
+In MOVIN Studio enable OSC output and point its **destination** at the receiver:
+
+- **Studio on the same computer as the node:** `127.0.0.1:11235`. On Linux, Studio's default
+  `0.0.0.0:11235` also works, because the kernel delivers packets sent to `0.0.0.0` to the local
+  host; on Windows use `127.0.0.1`.
+- **Studio on another computer:** the receiver computer's real IP address and the port above,
+  for example `192.168.0.25:11235` (`hostname -I` lists the local addresses). `0.0.0.0` is not
+  a routable address and never reaches another machine.
+
+`host` is the *local bind address* of the receiver, not the Studio address: `0.0.0.0` accepts
+packets on every interface, a specific address restricts reception to that interface. In Docker,
+run with the host network (`dev.sh`/`compose.yaml` do); a firewall must allow inbound UDP on the
+port.
 
 Check the stream:
 
@@ -563,13 +570,15 @@ MOVIN-ROS-Plugin/                       # clone into <workspace>/src; the reposi
 ├── docker/                             # Dockerfile, compose.yaml, dev.sh, ci.sh
 ├── docs/                               # DESIGN.md (rationale), IMPLEMENTATION_SPEC.md (contract)
 ├── .github/workflows/ci.yaml           # {humble, jazzy} x {default, --symlink-install}
-├── LICENSE                             # MIT
+├── LICENSE                             # Apache-2.0
+├── NOTICE
 └── THIRD_PARTY_NOTICES.md              # MOVIN SDK (Apache-2.0), Unitree G1 assets, GMR
 ```
 
 ## License and third-party notices
 
-This repository is licensed under the MIT License, see [LICENSE](LICENSE).
+This repository is licensed under the Apache License, Version 2.0, see [LICENSE](LICENSE)
+and [NOTICE](NOTICE), the same license as the MOVIN SDK Python.
 
 It redistributes third-party components, listed with their licenses in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md): the MOVIN SDK Python (Apache License 2.0,
