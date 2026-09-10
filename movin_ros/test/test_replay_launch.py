@@ -4,10 +4,15 @@ Launch test: replay the recorded fixture through ``mocap_node`` and verify its o
 Three nodes replay the installed fixture
 ``share/movin_ros/test/data/live_movinman_v3_1s.pkl``:
 
-* ``/movin/mocap_node`` loops the recording and exits after ``max_frames``;
+* ``/movin/mocap_node`` loops the recording until the harness sends SIGINT;
   its ``mocap_frame``, ``/tf`` and ``/tf_static`` output is checked, including
   a tf2 composition of ``world -> movin/MOVINMan/<bone>`` against
-  :func:`movin_ros.convert.forward_kinematics`.
+  :func:`movin_ros.convert.forward_kinematics`. It deliberately has no
+  ``max_frames`` so that a slow DDS discovery on a CI runner (which can take
+  longer than the ~2 s a 120-frame replay lasts) cannot leave the test
+  subscriber without data.
+* ``/movin_max/mocap_node`` loops the recording and must exit 0 on its own
+  after ``max_frames`` frames, logging ``max_frames=... reached``.
 * ``/movin_end/mocap_node`` plays the recording once with
   ``replay_exit_on_end`` and must exit 0 on its own after logging
   ``replay finished``.
@@ -105,8 +110,10 @@ def _mocap_node(namespace: str, extra_params: dict) -> launch_ros.actions.Node:
 
 @pytest.mark.launch_test
 def generate_test_description():
-    """Launch the looping node (max_frames), the play-once node and the keep-alive node."""
-    mocap_node = _mocap_node('movin', {'replay_loop': True, 'max_frames': MAX_FRAMES})
+    """Launch the data node, the max_frames node, and the play-once, keep, fast, empty nodes."""
+    mocap_node = _mocap_node('movin', {'replay_loop': True})
+    max_node = _mocap_node('movin_max', {
+        'replay_loop': True, 'max_frames': MAX_FRAMES, 'publish_tf': False})
     end_node = _mocap_node('movin_end', {
         'replay_loop': False, 'replay_exit_on_end': True, 'publish_tf': False})
     keep_node = _mocap_node('movin_keep', {
@@ -118,13 +125,14 @@ def generate_test_description():
         'recording': empty_recording_path(), 'replay_loop': True, 'publish_tf': False})
     return launch.LaunchDescription([
         mocap_node,
+        max_node,
         end_node,
         keep_node,
         fast_node,
         empty_node,
         launch_testing.actions.ReadyToTest(),
-    ]), {'mocap_node': mocap_node, 'end_node': end_node, 'keep_node': keep_node,
-         'fast_node': fast_node, 'empty_node': empty_node}
+    ]), {'mocap_node': mocap_node, 'max_node': max_node, 'end_node': end_node,
+         'keep_node': keep_node, 'fast_node': fast_node, 'empty_node': empty_node}
 
 
 class _Listener:
@@ -301,10 +309,10 @@ class TestReplay(unittest.TestCase):
         self.assertEqual(status.preset, 'movinman_v3')
         self.assertFalse(status.recording)
 
-    def test_05_nodes_exit_on_their_own(self, proc_info, proc_output, mocap_node, end_node):
-        """The play-once node logs 'replay finished' and exits; the looping one stops at max."""
+    def test_05_nodes_exit_on_their_own(self, proc_info, proc_output, max_node, end_node):
+        """The play-once node logs 'replay finished' and exits; the max_frames one stops at max."""
         proc_info.assertWaitForShutdown(process=end_node, timeout=40)
-        proc_info.assertWaitForShutdown(process=mocap_node, timeout=40)
+        proc_info.assertWaitForShutdown(process=max_node, timeout=40)
         self.assertTrue(
             wait_until(lambda: 'replay finished' in _output_text(proc_output, end_node),
                        timeout=10.0),
@@ -312,9 +320,9 @@ class TestReplay(unittest.TestCase):
         self.assertTrue(
             wait_until(
                 lambda: f'max_frames={MAX_FRAMES} reached' in _output_text(
-                    proc_output, mocap_node),
+                    proc_output, max_node),
                 timeout=10.0),
-            'looping node did not log the max_frames exit')
+            'max_frames node did not log the max_frames exit')
         time.sleep(0.2)
         self.assertGreaterEqual(len(self._snapshot(self.frames)), MIN_FRAMES)
 
@@ -342,9 +350,10 @@ class TestReplay(unittest.TestCase):
 class TestReplayExitCodes(unittest.TestCase):
     """Exit codes: 0 for the replaying nodes, 1 for the frame-less recording."""
 
-    def test_exit_codes(self, proc_info, mocap_node, end_node, keep_node, fast_node, empty_node):
+    def test_exit_codes(self, proc_info, mocap_node, max_node, end_node, keep_node, fast_node,
+                        empty_node):
         """max_frames, replay_exit_on_end and SIGINT end with 0; the fatal startup with 1."""
-        for process in (mocap_node, end_node, keep_node, fast_node):
+        for process in (mocap_node, max_node, end_node, keep_node, fast_node):
             launch_testing.asserts.assertExitCodes(
                 proc_info, allowable_exit_codes=[0], process=process)
         launch_testing.asserts.assertExitCodes(
