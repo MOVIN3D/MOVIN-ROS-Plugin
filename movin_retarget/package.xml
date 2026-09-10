@@ -5,7 +5,7 @@
   <version>2.0.0</version>
   <description>Optional Unitree G1 retargeting of MOVIN Studio motion capture: subscribes movin_msgs/MocapFrame and publishes sensor_msgs/JointState plus the world to pelvis transform using movin_sdk_python[retargeting] (mujoco and mink come from pip, see the README)</description>
   <maintainer email="dk.jang@movin3d.com">DK Jang</maintainer>
-  <license>MIT</license>
+  <license>Apache-2.0</license>
   <url type="repository">https://github.com/MOVIN3D/MOVIN-ROS-Plugin</url>
 
   <exec_depend>rclpy</exec_depend>

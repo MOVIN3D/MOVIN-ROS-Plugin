@@ -23,7 +23,7 @@ setup(
     maintainer_email='dk.jang@movin3d.com',
     description='Receive, record and replay real-time motion capture from MOVIN Studio in ROS 2 '
                 '(movin_msgs/MocapFrame, TF skeleton, SDK-compatible raw-OSC recordings).',
-    license='MIT',
+    license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [

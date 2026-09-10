@@ -20,7 +20,7 @@ setup(
     maintainer_email='dk.jang@movin3d.com',
     description='Optional Unitree G1 retargeting of MOVIN Studio motion capture frames '
                 '(movin_msgs/MocapFrame -> sensor_msgs/JointState + TF).',
-    license='MIT',
+    license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [

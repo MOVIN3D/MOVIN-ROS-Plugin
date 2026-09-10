@@ -1,7 +1,7 @@
 # Third-party notices
 
-This repository is licensed under the MIT License (see `LICENSE`). It
-redistributes the following third-party components.
+This repository is licensed under the Apache License, Version 2.0 (see `LICENSE`
+and `NOTICE`). It redistributes the following third-party components.
 
 ## MOVIN SDK Python
 

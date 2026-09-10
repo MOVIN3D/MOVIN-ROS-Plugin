@@ -1,0 +1,8 @@
+MOVIN ROS Plugin
+Copyright 2026 MOVIN Inc.
+
+This product is licensed under the Apache License, Version 2.0.
+
+It includes MOVIN SDK Python (Copyright 2026 MOVIN Inc., Apache License 2.0)
+as a git submodule and redistributes the Unitree G1 robot description; see
+THIRD_PARTY_NOTICES.md.
