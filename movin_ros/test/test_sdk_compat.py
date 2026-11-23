@@ -41,8 +41,11 @@ def test_mocap_receiver_shape():
     assert receiver.thread is None and receiver.sock is None
     assert hasattr(receiver, 'get_latest_frame') and hasattr(receiver, 'get_receive_rate')
     params = inspect.signature(MocapReceiver).parameters
-    assert set(params) == {'port', 'recorder', 'host'}
+    assert set(params) == {'port', 'recorder', 'host', 'reply_status'}
     assert params['host'].kind is inspect.Parameter.KEYWORD_ONLY
+    # mocap_node relies on the default: MOVIN Studio's OSC status probe is answered.
+    assert params['reply_status'].kind is inspect.Parameter.KEYWORD_ONLY
+    assert params['reply_status'].default is True
 
 
 def test_mocap_receiver_recorder_property_has_setter():
