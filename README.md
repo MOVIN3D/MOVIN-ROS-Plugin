@@ -67,7 +67,9 @@ In MOVIN Studio enable OSC output and set the destination:
 - Studio on **another computer**: the receiver's real IP and port, e.g. `192.168.0.25:11235`
   (`hostname -I`). `0.0.0.0` never reaches another machine.
 
-`host` is the receiver's local bind address, not the Studio address. Check the stream:
+`host` is the receiver's local bind address, not the Studio address. `mocap_node` answers Studio's
+OSC status probe, so Studio's Streaming panel shows `OSC connected` with the Motion fps (frames
+received) and the Viewer fps (frames `mocap_node` publishes). Check the stream:
 
 ```bash
 ros2 topic hz /movin/mocap_frame       # the Studio frame rate

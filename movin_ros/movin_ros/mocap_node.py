@@ -718,7 +718,7 @@ class MocapNode(Node):
             self._delivery = delivery
             if delivery == 'latest_only' and self.publish_every_frame:
                 self.get_logger().warning(
-                    'SDK receiver exposes no drainable frame queue; falling back to '
+                    'SDK receiver has no get_new_frames(); falling back to '
                     'get_latest_frame() (intermediate frames may be skipped)')
         self._process_frames(frames)
         if (self.mode == 'replay' and not self._replay_finished

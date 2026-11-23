@@ -1,7 +1,9 @@
 """
-Pin the ``movin_sdk_python`` attributes that ``movin_ros`` relies on.
+Pin the ``movin_sdk_python`` API and attributes that ``movin_ros`` relies on.
 
-``receiver.lock`` and ``receiver.assembler.ready_frames`` are public
+Frames are taken with ``get_new_frames()``; ``assembler.ready_frames`` (the
+4-frame queue behind it, also used by ``FastReplayReceiver`` and the tests),
+``receiver.thread``/``sock``/``recorder`` and the replay ``player`` are public
 attributes but not documented API, so this module fails loudly when the
 vendored SDK (git submodule) changes shape.
 """
@@ -40,6 +42,7 @@ def test_mocap_receiver_shape():
     assert isinstance(ready, collections.deque) and ready.maxlen == 4
     assert receiver.thread is None and receiver.sock is None
     assert hasattr(receiver, 'get_latest_frame') and hasattr(receiver, 'get_receive_rate')
+    assert receiver.get_new_frames() == []
     params = inspect.signature(MocapReceiver).parameters
     assert set(params) == {'port', 'recorder', 'host', 'reply_status'}
     assert params['host'].kind is inspect.Parameter.KEYWORD_ONLY
@@ -77,6 +80,7 @@ def test_replay_receiver_shape(live_fixture_path):
     assert isinstance(receiver.assembler.ready_frames, collections.deque)
     assert receiver.assembler.ready_frames.maxlen == 4
     assert not hasattr(receiver, 'recorder')
+    assert receiver.get_new_frames() == []
     assert isinstance(receiver.player, OscPlayer)
     params = inspect.signature(ReplayMocapReceiver).parameters
     assert list(params) == ['recording_path', 'realtime', 'loop']
@@ -92,6 +96,10 @@ def test_frame_assembler_defaults():
     assert [f['frame_idx'] for f in assembler.ready_frames] == [2, 3, 4, 5]
     assert assembler.pop_latest_frame() == {'frame_idx': 5}
     assert len(assembler.ready_frames) == 0
+    for i in range(3):
+        assembler.ready_frames.append({'frame_idx': i})
+    assert [f['frame_idx'] for f in assembler.pop_all_frames()] == [0, 1, 2]
+    assert assembler.pop_all_frames() == []
 
 
 def test_osc_recorder_and_player_api(tmp_path, live_fixture_path):

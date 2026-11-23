@@ -2,9 +2,9 @@
 Receiver construction and frame-polling helpers on top of ``movin_sdk_python``.
 
 Everything here is ROS-free (standard library plus the MOVIN SDK core) so the
-node logic can be exercised with plain ``pytest``.  The SDK exposes no
-callback or drain API, so :func:`drain_frames` reads the assembler's ready
-queue directly; :mod:`test_sdk_compat` pins the SDK attributes relied upon.
+node logic can be exercised with plain ``pytest``.  :func:`drain_frames` takes
+every queued frame through the SDK's ``get_new_frames()``;
+:mod:`test_sdk_compat` pins the SDK API relied upon.
 """
 
 from __future__ import annotations
@@ -44,9 +44,9 @@ class FastReplayReceiver:
     or the recording ends, so every frame is delivered and the replay runs as
     fast as the consumer drains it.  It exposes the attributes the node relies
     on for ``ReplayMocapReceiver`` (``player``, ``lock``, ``assembler``,
-    ``running``, ``start()``, ``stop()``, ``get_latest_frame()``,
-    ``get_receive_rate()``) plus :attr:`finished` and :attr:`loops_completed`;
-    like the SDK replay receiver it has no ``recorder``.
+    ``running``, ``start()``, ``stop()``, ``get_new_frames()``,
+    ``get_latest_frame()``, ``get_receive_rate()``) plus :attr:`finished` and
+    :attr:`loops_completed`; like the SDK replay receiver it has no ``recorder``.
     """
 
     def __init__(self, recording_path: str, loop: bool = True,
@@ -123,6 +123,11 @@ class FastReplayReceiver:
             self._rate_count = 0
             self._rate_t0 = now
         return ingested
+
+    def get_new_frames(self) -> list:
+        """Return every queued frame, oldest first, and clear the queue (SDK API)."""
+        with self.lock:
+            return self.assembler.pop_all_frames()
 
     def get_latest_frame(self):
         """Return the newest queued frame and drop the older ones (SDK API)."""
@@ -216,12 +221,12 @@ def drain_frames(receiver) -> tuple[list, str]:
     """
     Return ``(frames_oldest_first, delivery)``: every complete frame queued since the last poll.
 
-    ``delivery == 'drain'`` when the receiver exposes ``lock`` and
-    ``assembler.ready_frames`` (``MocapReceiver`` and ``ReplayMocapReceiver``
-    do): under ``receiver.lock`` the deque is copied and cleared.
-    ``receiver.assembler`` is re-read on EVERY call because ``start()``/``stop()``
-    replace it.  Otherwise the lossy fallback ``[receiver.get_latest_frame()]``
-    is returned with ``delivery == 'latest_only'``.
+    ``delivery == 'drain'`` when the receiver has ``get_new_frames()``
+    (``MocapReceiver``, ``ReplayMocapReceiver`` and :class:`FastReplayReceiver`
+    do): it returns every frame completed since the last call, oldest first.
+    For ``MocapReceiver`` every returned frame also counts toward the viewer
+    rate it reports to MOVIN Studio.  A receiver without it gets the lossy
+    fallback ``[receiver.get_latest_frame()]`` with ``delivery == 'latest_only'``.
 
     Queue-depth caveat: the SDK assembler stores ready frames in a
     ``collections.deque(maxlen=4)`` shared by all actors.  When a fifth frame
@@ -233,16 +238,11 @@ def drain_frames(receiver) -> tuple[list, str]:
     queues up to ``FAST_REPLAY_QUEUE_DEPTH`` frames and only fills the queue
     when pumped, so draining it is always lossless.
     """
-    lock = getattr(receiver, 'lock', None)
-    assembler = getattr(receiver, 'assembler', None)
-    if lock is None or not hasattr(assembler, 'ready_frames'):
+    get_new_frames = getattr(receiver, 'get_new_frames', None)
+    if get_new_frames is None:
         frame = receiver.get_latest_frame()
         return ([frame] if frame is not None else []), 'latest_only'
-    with lock:
-        ready = receiver.assembler.ready_frames
-        frames = list(ready)
-        ready.clear()
-    return frames, 'drain'
+    return list(get_new_frames()), 'drain'
 
 
 def detect_preset(frame) -> str:

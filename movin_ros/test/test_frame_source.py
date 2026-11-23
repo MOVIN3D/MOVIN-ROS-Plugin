@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import pickle
+import time
 
 from movin_ros import frame_source
 from movin_ros.frame_source import (
@@ -286,6 +287,45 @@ def test_drain_frames_falls_back_to_latest_only():
     assert drain_frames(receiver) == ([{'frame_idx': 2}], 'latest_only')
     assert drain_frames(receiver) == ([{'frame_idx': 1}], 'latest_only')
     assert drain_frames(receiver) == ([], 'latest_only')
+
+
+def test_drain_frames_uses_get_new_frames():
+    """Any receiver with get_new_frames() is drained through it, never via its internals."""
+    class Pulling:
+        def __init__(self):
+            """Initialize the helper."""
+            self.batches = [[{'frame_idx': 1}, {'frame_idx': 2}], []]
+
+        def get_new_frames(self):
+            """Return the next batch (oldest first)."""
+            return self.batches.pop(0)
+
+        def get_latest_frame(self):
+            """Must not be used when get_new_frames() exists."""
+            raise AssertionError('get_latest_frame() called')
+
+    receiver = Pulling()
+    assert drain_frames(receiver) == ([{'frame_idx': 1}, {'frame_idx': 2}], 'drain')
+    assert drain_frames(receiver) == ([], 'drain')
+
+
+def test_drain_frames_counts_toward_studio_viewer_rate(local_receiver, live_messages):
+    """Drained frames are what MOVIN Studio's status panel shows as the viewer rate."""
+    def viewer(now):
+        args = local_receiver.status.reply_args('0' * 32, 'MOVINMan', None, now)
+        return args[5], args[8]  # viewer fps, viewer age (-1 = no frame handed out yet)
+
+    frames = frame_packets(live_messages, frame_count=4)
+    _send_frames(local_receiver, frames[:2])
+    _wait_ready(local_receiver, 2)
+    assert viewer(time.monotonic()) == (0.0, -1.0)
+    assert len(drain_frames(local_receiver)[0]) == 2
+    time.sleep(0.05)
+    _send_frames(local_receiver, frames[2:])
+    _wait_ready(local_receiver, 2)
+    assert len(drain_frames(local_receiver)[0]) == 2
+    fps, age = viewer(time.monotonic())
+    assert fps > 0.0 and 0.0 <= age < 1.0
 
 
 def test_drain_frames_on_sdk_replay_receiver_is_lossy(live_fixture_path):

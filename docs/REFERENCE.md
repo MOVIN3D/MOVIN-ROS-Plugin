@@ -44,12 +44,17 @@ What happens per frame:
   suffix), a static anchor transform `world -> movin/<actor_id>` on `/tf_static` and one
   `/tf` message per frame carrying all bone edges. Anchors are published once per actor and never
   change for the node's lifetime. `actor_filter:=<name>` publishes one actor only.
-- `publish_every_frame:=true` (default) drains the SDK's ready-frame queue on every poll
-  (`poll_rate_hz`, default 120 Hz) so no assembled frame is skipped. The SDK keeps at most 4
-  complete frames between polls, so delivery is lossless as long as the poll rate stays above a
-  quarter of the frame rate; gaps in `frame_idx` are counted in `status.frames_dropped`.
-  `publish_every_frame:=false` publishes only the newest frame per poll (`frame_delivery:
-  latest_only`).
+- `publish_every_frame:=true` (default) takes every frame assembled since the last poll with the
+  SDK's `get_new_frames()` (`poll_rate_hz`, default 120 Hz) so no assembled frame is skipped. The
+  SDK keeps at most 4 complete frames between polls, so delivery is lossless as long as the poll
+  rate stays above a quarter of the frame rate; gaps in `frame_idx` are counted in
+  `status.frames_dropped`. `publish_every_frame:=false` publishes only the newest frame per poll
+  (`frame_delivery: latest_only`).
+- The SDK receiver answers MOVIN Studio's OSC status probe (`/MOVIN/OSC/Status/Request`, about
+  once a second) from the receiving socket, so Studio's Streaming panel shows `OSC connected`,
+  the Motion fps (complete frames received for the character) and the Viewer fps (frames handed
+  to `mocap_node`, i.e. published). Without an answer Studio shows `not connected` although
+  frames arrive. Replay mode sends nothing.
 - `status.receiving` turns `false` when no frame arrived for `stale_timeout_sec` (1 s), and
   `receive_rate_hz` reports `0` while not receiving (the SDK only updates its packet rate while
   packets arrive, so the last value is not repeated forever).
