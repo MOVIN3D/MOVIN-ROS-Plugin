@@ -249,6 +249,22 @@ def test_root_pose_matches_fallback_and_movin_ros():
 # rate limiter / actor selector
 # ---------------------------------------------------------------------------
 
+@pytest.mark.parametrize('value, expected', [
+    ('auto', 'auto'), (' Auto ', 'auto'), ('1.66', 1.66), (' 1.8 ', 1.8), (1.66, 1.66), (2, 2.0),
+])
+def test_parse_human_height(value, expected):
+    """'auto' or the actor's height in meters, as a string (launch) or a number (-p / YAML)."""
+    assert core.parse_human_height(value) == expected
+
+
+@pytest.mark.parametrize('value', ['', 'tall', '1.7m', 0, 0.0, -1.75, '-1', 'nan', 'inf',
+                                   float('inf'), True, False, None, [1.7]])
+def test_parse_human_height_rejects(value):
+    """Anything but 'auto' or a finite positive height is a ValueError with the expected form."""
+    with pytest.raises(ValueError, match="'auto' or the actor's height in meters"):
+        core.parse_human_height(value)
+
+
 def test_rate_limiter():
     limiter = core.RateLimiter(60.0)
     assert limiter.accept(now=0.0)
@@ -331,7 +347,40 @@ def retargeter():
     pytest.importorskip('mujoco')
     pytest.importorskip('mink')
     pytest.importorskip('movin_sdk_python')
-    return core.create_retargeter('unitree_g1', 1.75, 'movinman_v3')
+    return core.create_retargeter('unitree_g1', 'auto', 'movinman_v3')
+
+
+def test_human_height_auto_measures_the_stream(retargeter):
+    """'auto' starts at the reference body and sizes the targets from the first frame."""
+    fresh = core.create_retargeter('unitree_g1', 'auto', 'movinman_v3')
+    assert fresh.human_height == core.HUMAN_HEIGHT_AUTO and fresh.body_scale == 1.0
+    core.run_retarget(fresh, _fixture_frame()['bones'])
+    assert 0.5 < fresh.body_scale < 2.0 and fresh.body_scale != 1.0
+
+
+@pytest.mark.parametrize('height', [1.66, '1.66', 1.9])
+def test_human_height_number_is_the_actor_height(retargeter, height):
+    """A number is the actor's height: body_scale = 1.8 / h (taller actor, smaller scale)."""
+    sized = core.create_retargeter('unitree_g1', height, 'movinman_v3')
+    expected = core.REFERENCE_HEIGHT_M / float(height)
+    assert sized.body_scale == pytest.approx(expected)
+    core.run_retarget(sized, _fixture_frame()['bones'])   # not re-measured from the stream
+    assert sized.body_scale == pytest.approx(expected)
+
+
+def test_reference_height_matches_the_sdk_ik_configs(retargeter):
+    """REFERENCE_HEIGHT_M (used in log messages) is the SDK IK tables' reference height."""
+    import json
+    from movin_sdk_python.retargeter.retargeter import IK_CONFIG_BY_PRESET
+    for path in set(IK_CONFIG_BY_PRESET.values()):
+        with open(path) as f:
+            assert json.load(f)['human_height_assumption'] == core.REFERENCE_HEIGHT_M
+
+
+def test_create_retargeter_rejects_bad_human_height(retargeter):
+    """An invalid height fails before the Retargeter is built."""
+    with pytest.raises(ValueError, match='human_height'):
+        core.create_retargeter('unitree_g1', 'tall', 'movinman_v3')
 
 
 def test_run_retarget_on_live_fixture(retargeter):
@@ -367,10 +416,10 @@ def test_run_retarget_reports_missing_bones(retargeter):
 
 
 def test_legacy_preset_rejects_v3_only_bones_gracefully(retargeter):
-    legacy = core.create_retargeter('unitree_g1', 1.75, 'movinman')
+    legacy = core.create_retargeter('unitree_g1', 'auto', 'movinman')
     frame = _fixture_frame()
     # The V3 stream also has Spine1, so the legacy mapping can consume it.
     result = core.run_retarget(legacy, frame['bones'])
     assert len(result.joint_positions) == 29
     with pytest.raises(ValueError):
-        core.create_retargeter('unitree_g1', 1.75, 'movinman_v9')
+        core.create_retargeter('unitree_g1', 'auto', 'movinman_v9')

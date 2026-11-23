@@ -25,6 +25,13 @@ ROBOT_TYPES = ('unitree_g1', 'unitree_g1_with_hands')
 SOURCE_PRESETS = ('auto', 'movinman', 'movinman_v3')
 DEFAULT_SOURCE_PRESET = 'movinman_v3'
 FORWARD_MODES = ('coord_equivalent', 'isaac_world')
+# human_height value that lets the SDK Retargeter size the actor from the streamed bones.
+HUMAN_HEIGHT_AUTO = 'auto'
+# Height of the reference body the SDK IK tables were tuned for (ik_configs/*.json
+# human_height_assumption); a numeric human_height h gives body_scale = REFERENCE_HEIGHT_M / h.
+REFERENCE_HEIGHT_M = 1.8
+# Heights outside this range (meters) are almost certainly a unit or old-meaning mistake.
+PLAUSIBLE_HUMAN_HEIGHT_M = (0.5, 3.0)
 # The only bone convention movin_msgs/MocapFrame carries (MocapFrame.CONVENTION_UNITY_LH_YUP).
 CONVENTION_UNITY_LH_YUP = 0
 
@@ -228,12 +235,48 @@ def hinge_joint_names(model) -> list:
     ]
 
 
-def create_retargeter(robot_type: str, human_height: float, source_preset: str):
-    """Construct the SDK ``Retargeter`` (raises ``ValueError`` for unsupported combinations)."""
+def parse_human_height(value):
+    """
+    Return the Retargeter ``human_height`` for a parameter value: ``'auto'`` or meters.
+
+    ``'auto'`` (any case, surrounding spaces ignored) sizes the actor from the
+    streamed bones.  Anything else is the actor's standing height in meters,
+    given as a number or a numeric string (a launch argument arrives as a
+    string, ``-p human_height:=1.66`` or a YAML number as a double); it must be
+    finite and positive.  Raises ``ValueError`` otherwise (booleans included).
+    """
+    if isinstance(value, str):
+        text = value.strip()
+        if text.lower() == HUMAN_HEIGHT_AUTO:
+            return HUMAN_HEIGHT_AUTO
+        try:
+            height = float(text)
+        except ValueError:
+            height = None
+    elif isinstance(value, (int, float)) and not isinstance(value, bool):
+        height = float(value)
+    else:
+        height = None
+    if height is None or not math.isfinite(height) or height <= 0.0:
+        raise ValueError(
+            f"human_height must be '{HUMAN_HEIGHT_AUTO}' or the actor's height in meters "
+            f'(a positive number), got {value!r}'
+        )
+    return height
+
+
+def create_retargeter(robot_type: str, human_height, source_preset: str):
+    """
+    Construct the SDK ``Retargeter``.
+
+    ``human_height`` is ``'auto'`` or the actor's height in meters (see
+    :func:`parse_human_height`).  Raises ``ValueError`` for an invalid height
+    or an unsupported robot/preset combination.
+    """
     from movin_sdk_python import Retargeter
     return Retargeter(
         robot_type=robot_type,
-        human_height=float(human_height),
+        human_height=parse_human_height(human_height),
         verbose=False,
         source_preset=source_preset,
     )

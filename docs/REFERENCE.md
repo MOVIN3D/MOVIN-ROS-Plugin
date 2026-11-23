@@ -166,8 +166,19 @@ core node is unaffected.
 
 Notes:
 
-- `human_height` scales the actor to the robot; `robot_offset` (launch argument: X offset in
-  meters; node parameter `robot_offset`: `[x, y, z]`) places the robot next to the skeleton.
+- `human_height` sizes the actor to the reference body (1.8 m) the SDK IK tables were tuned for.
+  `auto` (default) lets the SDK `Retargeter` measure the actor from the T-pose leg length of the
+  streamed bones, and again whenever Studio streams new proportions (a recalibrated actor). A
+  number is the actor's standing height in meters and turns the measurement off; the body scale
+  is then `1.8 / human_height`. `retarget_node` logs the applied scale when it is first known and
+  whenever it changes. The node parameter is dynamically typed so that `auto`, a launch argument
+  string (`human_height:=1.66`) and a number (`-p human_height:=1.66`, YAML) all work; anything
+  else is fatal, and a height outside 0.5 to 3 m is warned about.
+- **Changed meaning of a numeric `human_height`.** Earlier versions (default `1.75`) scaled the
+  targets by `human_height / 1.8`, the inverse of today's `1.8 / human_height`. To reproduce a
+  result retargeted with an old value `h`, pass `3.24 / h` (`1.8² / h`; about `1.85` for `1.75`).
+- `robot_offset` (launch argument: X offset in meters; node parameter `robot_offset`:
+  `[x, y, z]`) places the robot next to the skeleton.
 - The Retargeter, like the SDK and Isaac examples, scales the hips position and does not align
   the feet with the ground unless `offset_to_ground` is set, so the robot drifts away from the
   skeleton by about 10 cm per meter of travel; this is SDK behaviour and is not corrected here.
@@ -274,7 +285,7 @@ the string `source_timestamp` and its counter as `frame_idx`.
 | `publish_markers` | `false` | Publish `skeleton_markers` (requires `publish_tf`) |
 | `frame_qos_reliable` | `true` | `mocap_frame` QoS of `mocap_node` and `retarget_node`: reliable (`true`) or best effort |
 | `robot` | `none` | `none`, `unitree_g1`, `unitree_g1_with_hands` (starts `movin_retarget`) |
-| `human_height` | `1.75` | Actor height in meters for retargeting |
+| `human_height` | `auto` | Retargeting body size: `auto` (measured from the stream) or the actor's height in meters |
 | `robot_offset` | `0.0` | Robot X offset in meters (retargeting) |
 | `urdf_file` | G1 29-DoF URDF | URDF for `robot_state_publisher` (retargeting) |
 | `rviz` | `false` | Start RViz: `movin_ros/rviz/mocap.rviz`, or with `robot:=...` `movin_g1_description/rviz/g1_mocap.rviz` |
@@ -320,7 +331,7 @@ parameters accept integer literals (`-p poll_rate_hz:=60`, `skeleton_offset: [0,
 | `max_frames` | int | `0` | Exit after N frames (`0` = never) |
 
 `retarget_node` parameters (`ros2 launch movin_retarget retarget.launch.py`; also read-only):
-`robot` (`unitree_g1`), `human_height` (`1.75`), `source_preset` (`auto`), `forward_mode`
+`robot` (`unitree_g1`), `human_height` (`auto` or meters), `source_preset` (`auto`), `forward_mode`
 (`isaac_world`), `world_frame` (`world`), `robot_root_frame` (`pelvis`), `robot_offset`
 (`[0, 0, 0]`), `offset_to_ground` (`false`), `max_rate_hz` (`60.0`), `actor` (`''` = first actor
 seen), `frame_qos_reliable` (`true`, must equal `mocap_node`'s).

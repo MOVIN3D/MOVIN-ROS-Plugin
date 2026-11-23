@@ -54,7 +54,7 @@ class RetargetNode(Node):
         self._declare_parameters()
 
         self.robot = self._str('robot')
-        self.human_height = self._float('human_height')
+        self.human_height = core.parse_human_height(self.get_parameter('human_height').value)
         self.source_preset = self._str('source_preset')
         self.forward_mode = self._str('forward_mode')
         self.world_frame = self._str('world_frame')
@@ -78,6 +78,12 @@ class RetargetNode(Node):
             )
         if len(self.robot_offset) != 3:
             raise ValueError(f'robot_offset must have 3 elements, got {self.robot_offset}')
+        low, high = core.PLAUSIBLE_HUMAN_HEIGHT_M
+        if self.human_height != core.HUMAN_HEIGHT_AUTO and not low <= self.human_height <= high:
+            self.get_logger().warning(
+                f"human_height={self.human_height:g} is the actor's standing height in meters "
+                f'(body scale {core.REFERENCE_HEIGHT_M:g} / human_height); expected '
+                f'{low:g}..{high:g} m. Use human_height:=auto to measure the actor.')
 
         self._retargeter = None
         self._joint_names = []
@@ -85,6 +91,7 @@ class RetargetNode(Node):
         self._rate = core.RateLimiter(self.max_rate_hz)
         self._actors = core.ActorSelector(self.actor)
         self._ignored_actors = set()
+        self._body_scale = None
         self.frames_received = 0
         self.frames_published = 0
 
@@ -107,7 +114,7 @@ class RetargetNode(Node):
             )
 
         self.get_logger().info(
-            f'robot={self.robot} human_height={self.human_height:.2f} '
+            f'robot={self.robot} human_height={self.human_height} '
             f'source_preset={self.source_preset} forward_mode={self.forward_mode} '
             f'{self.world_frame}->{self.robot_root_frame} robot_offset={self.robot_offset} '
             f'max_rate_hz={self.max_rate_hz:g} actor={self.actor or "<first seen>"}; '
@@ -118,16 +125,22 @@ class RetargetNode(Node):
 
     def _declare_parameters(self) -> None:
         """Declare every parameter; all are read once at startup, hence ``read_only``."""
-        def declare(name, default, description):
-            dynamic = isinstance(default, float) or (
-                isinstance(default, list) and all(isinstance(v, float) for v in default))
+        def declare(name, default, description, dynamic=None):
+            if dynamic is None:
+                dynamic = isinstance(default, float) or (
+                    isinstance(default, list) and all(isinstance(v, float) for v in default))
             self.declare_parameter(
                 name, default, ParameterDescriptor(
                     description=description, read_only=True, dynamic_typing=dynamic))
 
         declare('robot', 'unitree_g1',
                 'Retargeter robot type: unitree_g1 (29 joints) or unitree_g1_with_hands (43).')
-        declare('human_height', 1.75, 'Actor height in meters used to scale the skeleton.')
+        # Dynamically typed: 'auto' is a string, a height may arrive as a double or an integer.
+        declare('human_height', core.HUMAN_HEIGHT_AUTO,
+                "Actor size for retargeting: 'auto' measures it from the streamed bones (and "
+                "again when Studio streams new proportions); a number is the actor's standing "
+                f'height in meters (body scale = {core.REFERENCE_HEIGHT_M:g} / human_height).',
+                dynamic=True)
         declare('source_preset', 'auto',
                 'Source skeleton preset: auto (from the MocapFrame.preset field), '
                 'movinman or movinman_v3.')
@@ -214,7 +227,22 @@ class RetargetNode(Node):
             self._disabled = True
             return
 
+        self._report_body_scale()
         self._publish(result, msg)
+
+    def _report_body_scale(self) -> None:
+        """Log the Retargeter's body scale when it is first known and whenever it changes."""
+        scale = getattr(self._retargeter, 'body_scale', None)
+        if scale is None:
+            return
+        if self._body_scale is not None and abs(scale - self._body_scale) < 1e-4:
+            return
+        source = ('measured from the stream' if self.human_height == core.HUMAN_HEIGHT_AUTO
+                  else f'from human_height={self.human_height:g} m')
+        self.get_logger().info(
+            f'body scale to the {core.REFERENCE_HEIGHT_M:g} m reference body: {scale:.4f} '
+            f'({source})')
+        self._body_scale = scale
 
     def _create_retargeter(self, msg, bones) -> None:
         """Build the Retargeter on the first accepted frame (preset from the message)."""

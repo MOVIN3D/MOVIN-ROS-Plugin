@@ -140,12 +140,16 @@ pip install mujoco mink numpy scipy
 cd ~/movin_ws && colcon build --symlink-install && source install/setup.bash
 
 ros2 launch movin_ros mocap.launch.py robot:=unitree_g1 rviz:=true
-ros2 launch movin_ros mocap.launch.py robot:=unitree_g1 human_height:=1.80 robot_offset:=1.0
+ros2 launch movin_ros mocap.launch.py robot:=unitree_g1 human_height:=1.66 robot_offset:=1.0
 ```
 
-`robot` is `unitree_g1` (29 joints) or `unitree_g1_with_hands` (43). In Docker use the
-`WITH_RETARGETING=1` image. Without the extra `retarget_node` exits with a clear message and the
-core node is unaffected.
+`robot` is `unitree_g1` (29 joints) or `unitree_g1_with_hands` (43). `human_height` sizes the
+actor to the 1.8 m reference body the SDK's IK tables were tuned for: `auto` (default) measures the
+actor from the streamed bones, a number is the actor's standing height in meters (body scale
+`1.8 / human_height`; `retarget_node` logs the scale). Earlier versions read the number the other
+way round (default `1.75`); to reproduce such a result pass `3.24 / h` (about `1.85` for `1.75`).
+In Docker use the `WITH_RETARGETING=1` image. Without the extra `retarget_node` exits with a clear
+message and the core node is unaffected.
 
 ## Optional: RViz
 
@@ -189,7 +193,7 @@ are node parameters; the full list with types is in [docs/REFERENCE.md](docs/REF
 | `forward_mode` | `isaac_world` | `isaac_world` or `coord_equivalent` |
 | `world_frame` / `tf_prefix` | `world` / `movin` | TF names |
 | `publish_markers` | `false` | skeleton markers for RViz |
-| `robot` / `human_height` / `robot_offset` | `none` / `1.75` / `0.0` | retargeting |
+| `robot` / `human_height` / `robot_offset` | `none` / `auto` / `0.0` | retargeting (`human_height`: `auto` or the actor's height in m) |
 | `rviz` | `false` | start RViz |
 | `bag` / `bag_dir` | `false` / `''` | run `ros2 bag record` |
 

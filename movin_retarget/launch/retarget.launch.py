@@ -57,8 +57,9 @@ def generate_launch_description() -> LaunchDescription:
             'robot', default_value='unitree_g1',
             description='Retargeter robot type: unitree_g1 or unitree_g1_with_hands.'),
         DeclareLaunchArgument(
-            'human_height', default_value='1.75',
-            description='Actor height in meters used to scale the skeleton.'),
+            'human_height', default_value='auto',
+            description="Body size: auto (measured from the streamed bones) or the actor's "
+                        'standing height in meters (body scale = 1.8 / human_height).'),
         DeclareLaunchArgument(
             'source_preset', default_value='auto',
             description='Source skeleton preset: auto (from the message), movinman, movinman_v3.'),
@@ -120,7 +121,8 @@ def generate_launch_description() -> LaunchDescription:
         emulate_tty=True,
         parameters=[{
             'robot': ParameterValue(robot, value_type=str),
-            'human_height': ParameterValue(human_height, value_type=float),
+            # 'auto' or meters; passed as a string, retarget_node parses it (see its description).
+            'human_height': ParameterValue(human_height, value_type=str),
             'source_preset': ParameterValue(source_preset, value_type=str),
             'forward_mode': ParameterValue(forward_mode, value_type=str),
             'world_frame': ParameterValue(world_frame, value_type=str),
