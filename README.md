@@ -215,7 +215,7 @@ are node parameters; the full list with types is in [docs/REFERENCE.md](docs/REF
 ## Testing
 
 ```bash
-python3 -m pytest movin_ros/test -k "not launch"     # ROS-free unit tests (no ROS needed)
+python3 -m pytest movin_ros/test -k "not launch"     # ROS-free unit tests (no ROS needed); likewise movin_retarget/test
 colcon test && colcon test-result --verbose          # + lint and launch tests (ROS 2)
 ./docker/ci.sh jazzy                                 # the CI run in a container
 ```

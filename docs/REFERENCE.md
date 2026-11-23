@@ -378,8 +378,13 @@ submodule on `sys.path`):
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -p no:cacheprovider movin_ros/test -k "not launch"
-python3 -m pytest movin_ros/test movin_retarget/test -k "not launch"     # both packages in one session also works
+python3 -m pytest movin_retarget/test                                     # one package per session
 ```
+
+The packages share test module names (`test_flake8.py`, `test_pep257.py`), so run them in separate
+pytest sessions. The lint tests check the current directory and only run where the ament linters
+are installed; in a ROS 2 shell run pytest from the package directory (`cd movin_ros && python3 -m
+pytest test -k "not launch"`) or leave them out with `-m "not linter"`.
 
 The forward-kinematics parity tests compare against the SDK and are skipped when NumPy is not
 installed; run them from an environment that has it. `test_no_numpy_import.py` guarantees the
