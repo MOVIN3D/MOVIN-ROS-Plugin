@@ -100,6 +100,8 @@ ros2 run movin_ros recording_info ~/movin_recordings/movin_20260909_161500_000.p
 - Recordings are held in RAM until saved (about 1 GB per 10 minutes at 60 Hz), so they rotate into
   numbered segments every `record_segment_sec` (default 600 s) without losing a packet.
 - `Ctrl-C` saves the active recording before the node exits; an empty recording is never written.
+- A recording keeps every OSC message, including Studio's status probes (about one per second);
+  `recording_info` lists the messages per address and the number of complete frames.
 - The `.pkl` files of the former `motion_player` package and BVH files are not SDK recordings and
   are rejected by `mode:=replay`.
 

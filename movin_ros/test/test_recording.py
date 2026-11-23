@@ -499,7 +499,9 @@ def test_recording_info_cli(capsys, live_fixture_path, legacy_fixture_path, tmp_
     assert 'version:      1' in out
     assert 'stream_type:  movin' in out
     assert 'num_messages: 162' in out
+    assert 'addresses:    /MOVIN/Frame 162' in out
     assert 'duration_sec: 0.998' in out
+    assert 'frames:       54' in out
     assert 'actor:        MOVINMan' in out
     assert 'frame_idx:    13899' in out
     assert 'bones:        55' in out
@@ -536,12 +538,35 @@ def test_recording_info_describe(live_fixture_path):
 
     info = describe_recording(live_fixture_path)
     assert info['version'] == 1 and info['num_messages'] == 162
+    assert info['addresses'] == {'/MOVIN/Frame': 162} and info['frames'] == 54
     assert info['bones'] == 55 and info['preset'] == 'movinman_v3'
     assert info['timestamp'].startswith('2026-09-09')
     text = format_info(info)
     assert text.splitlines()[0] == f'recording:    {live_fixture_path}'
     empty = format_info({'recording': 'x', 'duration_sec': 0, 'frame_idx': None, 'actor': ''})
     assert 'frame_idx:    -' in empty and 'actor:        -' in empty
+    assert 'addresses:    -' in empty
+
+
+def test_recording_info_counts_studio_status_probes(tmp_path, live_messages):
+    """Studio's status probes are recorded too: counted as messages, never as frames."""
+    from movin_ros.recording_info import describe_recording, format_info
+
+    probe = ('/MOVIN/OSC/Status/Request', ['0123456789abcdef0123456789abcdef', 40000, 'MOVINMan'])
+    recorder = OscRecorder(str(tmp_path / 'probed.pkl'), stream_type='movin')
+    for index, (address, args) in enumerate(live_messages):
+        if index % 60 == 0:
+            recorder.record(*probe)
+        recorder.record(address, args)
+    recorder.save()
+
+    info = describe_recording(str(tmp_path / 'probed.pkl'))
+    assert info['addresses'] == {'/MOVIN/Frame': 162, '/MOVIN/OSC/Status/Request': 3}
+    assert info['num_messages'] == 165 and info['frames'] == 54
+    assert info['frame_idx'] == 13899 and info['bones'] == 55
+    text = format_info(info)
+    assert 'addresses:    /MOVIN/Frame 162, /MOVIN/OSC/Status/Request 3' in text
+    assert 'frames:       54' in text
 
 
 def test_background_save_failure_is_logged(tmp_path, started_receiver, live_messages,

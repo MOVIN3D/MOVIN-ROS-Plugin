@@ -85,7 +85,9 @@ NumPy), the same file the SDK examples and the Isaac plugin write and read.
   the default segment length is 10 minutes.
 - **Status.** `/movin/status` reports `recording`, `recording_path`, `recording_segment`,
   `recording_messages` and `recording_duration_sec`; `StopRecording` answers with the saved path,
-  `num_messages` and `duration_sec`.
+  `num_messages` and `duration_sec`. Message counts include every OSC message received, also
+  Studio's status probes (about one per second, ignored by replay); `recording_info` prints the
+  count per OSC address and the number of complete frames.
 - **Nothing lost, nothing empty.** The output path is probed for writability when the recording
   starts (`record:=` at startup is fatal with exit 1 if the path is a directory or not writable;
   `start_recording` answers `success: false`). A recording that received no packet is never
