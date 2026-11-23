@@ -23,13 +23,22 @@ else()
 endif()
 message(STATUS "Vendoring movin_sdk_python ${MOVIN_SDK_VERSION} from ${MOVIN_SDK_PACKAGE_DIR}")
 
-# Installs the whole package directory (including retargeter/ik_configs/*.json and
-# retargeter/assets/**/*.xml,*.STL) into this package's Python site-packages and
-# puts it on PYTHONPATH through the ament environment hooks. The submodule's own
-# setup.py / pyproject.toml are never executed.
+# Installs the whole package directory (including assets/*.xml,*.npz,
+# retargeter/ik_configs/*.json and retargeter/assets/**/*.xml,*.STL) into this package's
+# Python site-packages and puts it on PYTHONPATH through the ament environment hooks. The
+# submodule's own setup.py / pyproject.toml are never executed.
 ament_python_install_package(movin_sdk_python
   PACKAGE_DIR "${MOVIN_SDK_PACKAGE_DIR}"
   VERSION "${MOVIN_SDK_VERSION}"
 )
+
+if(BUILD_TESTING)
+  # The installed package must carry every file of the submodule's package (assets included).
+  find_package(ament_cmake_pytest REQUIRED)
+  ament_add_pytest_test(test_installed_package test/test_installed_package.py
+    ENV "MOVIN_SDK_INSTALLED_PACKAGE=${CMAKE_INSTALL_PREFIX}/${PYTHON_INSTALL_DIR}/movin_sdk_python"
+    TIMEOUT 120
+  )
+endif()
 
 ament_package()

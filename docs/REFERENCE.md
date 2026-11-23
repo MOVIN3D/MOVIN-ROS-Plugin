@@ -386,9 +386,10 @@ installed; run them from an environment that has it. `test_no_numpy_import.py` g
 core modules never import NumPy, SciPy or MuJoCo. (`PYTHONDONTWRITEBYTECODE` / `no:cacheprovider`
 keep `__pycache__` and `.pytest_cache` out of the source tree; both are ignored by git anyway.)
 
-With ROS 2 (natively or through Docker; includes `ament_flake8`, `ament_pep257` and the
+With ROS 2 (natively or through Docker; includes `ament_flake8`, `ament_pep257`, the
 `launch_testing` suites: replay of the fixture, live UDP on port 21235, recording services and
-save-on-shutdown):
+save-on-shutdown, and `movin_sdk_python_vendor`'s check that the installed SDK carries every file
+of the submodule's package, assets included):
 
 ```bash
 colcon test && colcon test-result --verbose
