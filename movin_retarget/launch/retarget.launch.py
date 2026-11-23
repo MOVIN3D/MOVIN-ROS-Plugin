@@ -80,7 +80,7 @@ def generate_launch_description() -> LaunchDescription:
             description='Shift the skeleton so the lowest foot touches the ground.'),
         DeclareLaunchArgument(
             'max_rate_hz', default_value='60.0',
-            description='Upper bound of the retargeting rate; 0 = every frame.'),
+            description='Upper bound of the average retargeting rate; 0 = every frame.'),
         DeclareLaunchArgument(
             'actor', default_value='',
             description='Actor name to retarget; empty = first actor seen.'),

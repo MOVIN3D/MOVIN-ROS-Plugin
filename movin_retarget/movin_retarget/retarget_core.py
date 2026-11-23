@@ -404,18 +404,40 @@ def root_pose(root_pos_xyz, root_quat_wxyz, forward_mode: str, offset_xyz=(0.0, 
 # ---------------------------------------------------------------------------
 
 class RateLimiter:
-    """Accept at most ``max_rate_hz`` events per second (``<= 0`` disables the limit)."""
+    """
+    Keep the average rate of accepted events at or below ``max_rate_hz``.
 
-    def __init__(self, max_rate_hz: float):
-        self.min_interval = 1.0 / float(max_rate_hz) if float(max_rate_hz) > 0.0 else 0.0
-        self._last = None
+    A token bucket: one event's worth of credit accrues every ``1 / max_rate_hz``
+    seconds and at most ``burst`` events' worth is kept.  The limit therefore
+    applies to the average rate, not to every single interval:
+
+    * a stream at about ``max_rate_hz`` passes even when its arrival times
+      jitter (an early frame spends the credit a late one left behind);
+    * a faster stream is thinned to ``max_rate_hz``;
+    * frames that pile up after a pause pass at most ``burst`` at a time.
+
+    ``max_rate_hz <= 0`` disables the limit.
+    """
+
+    BURST = 3  # absorbs up to two frame intervals of arrival jitter
+
+    def __init__(self, max_rate_hz: float, burst: int = BURST):
+        rate = float(max_rate_hz)
+        self.interval = 1.0 / rate if rate > 0.0 else 0.0
+        self.burst = max(1, int(burst))
+        # Credit is kept as the time at which the bucket would be empty again
+        # (the "theoretical arrival time" of the generic cell rate algorithm).
+        self._empty_at = None
 
     def accept(self, now=None) -> bool:
-        """Return True (and remember ``now``) when enough time passed since the last accept."""
+        """Return True (and spend one event's credit) when the bucket holds enough credit."""
+        if self.interval == 0.0:
+            return True
         now = time.monotonic() if now is None else float(now)
-        if self._last is not None and now - self._last < self.min_interval:
+        empty_at = now if self._empty_at is None else max(self._empty_at, now)
+        if empty_at - now > (self.burst - 1) * self.interval:
             return False
-        self._last = now
+        self._empty_at = empty_at + self.interval
         return True
 
 

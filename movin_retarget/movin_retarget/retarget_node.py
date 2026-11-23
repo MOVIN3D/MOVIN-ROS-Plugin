@@ -155,7 +155,8 @@ class RetargetNode(Node):
         declare('offset_to_ground', False,
                 'Let the Retargeter shift the skeleton so the lowest foot touches the ground.')
         declare('max_rate_hz', 60.0,
-                'Upper bound of retargeting (IK) rate; surplus frames are skipped. 0 = no limit.')
+                'Upper bound of the average retargeting (IK) rate; surplus frames are skipped, '
+                'short bursts of jittered frames pass. 0 = no limit.')
         declare('actor', '', 'Actor name to retarget; empty = lock onto the first actor seen.')
         declare('frame_qos_reliable', True,
                 'Subscribe mocap_frame with RELIABLE (true) or BEST_EFFORT (false) QoS; '

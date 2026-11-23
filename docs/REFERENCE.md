@@ -181,6 +181,11 @@ Notes:
   result retargeted with an old value `h`, pass `3.24 / h` (`1.8² / h`; about `1.85` for `1.75`).
 - `robot_offset` (launch argument: X offset in meters; node parameter `robot_offset`:
   `[x, y, z]`) places the robot next to the skeleton.
+- `max_rate_hz` (default `60.0`, `0` = no limit) bounds the average retargeting rate with a token
+  bucket rather than the gap between two frames: a stream at about that rate is retargeted frame
+  for frame even when its arrival times jitter (an early frame spends the credit a late one left),
+  a faster stream is thinned to that rate, and frames that pile up after a pause pass at most
+  three at a time.
 - The Retargeter, like the SDK and Isaac examples, scales the hips position and does not align
   the feet with the ground unless `offset_to_ground` is set, so the robot drifts away from the
   skeleton by about 10 cm per meter of travel; this is SDK behaviour and is not corrected here.

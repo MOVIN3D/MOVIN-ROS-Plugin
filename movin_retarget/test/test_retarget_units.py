@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import math
 import os
+import random
 import subprocess
 import sys
 import types
@@ -265,14 +266,72 @@ def test_parse_human_height_rejects(value):
         core.parse_human_height(value)
 
 
-def test_rate_limiter():
+def _accepted(limiter, times):
+    """Return the arrival times ``limiter`` accepts, in order."""
+    return [t for t in times if limiter.accept(now=t)]
+
+
+def _most_in_window(times, window):
+    """Return the most ``times`` that fall into any half-open interval of length ``window``."""
+    end = 0
+    best = 0
+    for start, t in enumerate(times):
+        while end < len(times) and times[end] < t + window:
+            end += 1
+        best = max(best, end - start)
+    return best
+
+
+def _jittered(rate_hz, count, max_delay, seed):
+    """Return ``count`` in-order arrivals at ``rate_hz``, each delayed by up to ``max_delay``."""
+    rng = random.Random(seed)
+    times = []
+    for i in range(count):
+        arrival = i / rate_hz + rng.uniform(0.0, max_delay)
+        times.append(max(arrival, times[-1]) if times else arrival)  # delivery keeps the order
+    return times
+
+
+def test_rate_limiter_passes_a_jittered_stream_at_the_limit():
+    """At max_rate_hz = stream rate, early, late and paired frames all pass."""
+    period = 1.0 / 60.0
+    times = _jittered(60.0, 1200, 1.5 * period, seed=1)
+    intervals = [b - a for a, b in zip(times, times[1:])]
+    assert sum(dt < period for dt in intervals) > len(intervals) // 4  # the jitter is real
+    assert min(intervals) < 0.1 * period
+    assert _accepted(core.RateLimiter(60.0), times) == times
+
+
+@pytest.mark.parametrize('jitter', [0.0, 0.5 / 120.0])
+def test_rate_limiter_thins_a_faster_stream_to_the_limit(jitter):
+    """A 120 Hz stream at max_rate_hz=60 comes out at 60 Hz on average and in every second."""
+    times = _jittered(120.0, 1200, jitter, seed=2)  # 10 s
+    accepted = _accepted(core.RateLimiter(60.0), times)
+    assert abs(len(accepted) - 600) <= core.RateLimiter.BURST
+    assert _most_in_window(accepted, 1.0) <= 60 + core.RateLimiter.BURST
+
+
+def test_rate_limiter_spreads_frames_that_pile_up_after_a_pause():
+    """Frames delivered together after a pause pass at most BURST at once, then 60 Hz resumes."""
+    period = 1.0 / 60.0
     limiter = core.RateLimiter(60.0)
-    assert limiter.accept(now=0.0)
-    assert not limiter.accept(now=0.005)
-    assert limiter.accept(now=1.0 / 60.0)
-    assert not limiter.accept(now=1.0 / 60.0 + 0.001)
-    unlimited = core.RateLimiter(0.0)
-    assert all(unlimited.accept(now=0.0) for _ in range(3))
+    before = [i * period for i in range(60)]
+    pile = [2.0 + i * 1e-4 for i in range(30)]
+    after = [2.0 + (i + 1) * period for i in range(120)]
+    assert _accepted(limiter, before) == before
+    assert len(_accepted(limiter, pile)) == core.RateLimiter.BURST
+    assert len(_accepted(limiter, after)) >= len(after) - 1
+    # the pause earns no extra credit: still at most 60 + BURST frames in any second
+    everything = _accepted(core.RateLimiter(60.0), before + pile + after)
+    assert _most_in_window(everything, 1.0) <= 60 + core.RateLimiter.BURST
+
+
+@pytest.mark.parametrize('max_rate_hz', [0.0, -5.0])
+def test_rate_limiter_without_a_limit_accepts_everything(max_rate_hz):
+    """max_rate_hz <= 0 accepts every event, even many at the same instant."""
+    unlimited = core.RateLimiter(max_rate_hz)
+    assert all(unlimited.accept(now=0.0) for _ in range(100))
+    assert all(unlimited.accept() for _ in range(10))
 
 
 def test_actor_selector():
