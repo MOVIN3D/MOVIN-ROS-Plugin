@@ -80,9 +80,9 @@ NumPy), the same file the SDK examples and the Isaac plugin write and read.
   numbered files (`movin_<timestamp>_000.pkl`, `_001.pkl`, ...). A split swaps in a new recorder
   under the receiver lock and saves the previous segment on a background thread: no packet is lost
   at the boundary and the 120 Hz poll timer is not blocked by `pickle.dump`. `split_recording`
-  does the same on demand. Messages are kept in RAM until a segment is saved (roughly 25 KB per
-  frame, about 1 GB per 10 minutes at 60 Hz with 55 bones; ~7 KB per frame on disk), which is why
-  the default segment length is 10 minutes.
+  does the same on demand. Messages are kept in RAM until a segment is saved, as Python objects
+  that are larger than the saved file, so memory grows with the segment length, the frame rate and
+  the number of bones and actors; this is why segments rotate by default every 10 minutes.
 - **Status.** `/movin/status` reports `recording`, `recording_path`, `recording_segment`,
   `recording_messages` and `recording_duration_sec`; `StopRecording` answers with the saved path,
   `num_messages` and `duration_sec`. Message counts include every OSC message received, also
@@ -98,8 +98,8 @@ NumPy), the same file the SDK examples and the Isaac plugin write and read.
   `stop_recording` again, or discard with `{save: false}`. If saving fails at shutdown, the take
   is written to `movin_unsaved_<random>.pkl` in the system temp directory instead.
 - **`stop_recording` blocks the node while it writes.** The service saves synchronously so the
-  file exists when it answers; `pickle.dump` takes about 0.4 s per 10 minutes of stream on a
-  local disk, during which the poll timer does not run and frames completing beyond the SDK's
+  file exists when it answers; `pickle.dump` takes longer the longer the segment is, and meanwhile
+  the poll timer does not run and frames completing beyond the SDK's
   4-frame queue are dropped from `mocap_frame`/`/tf` (not from the recording; they show up in
   `frames_dropped`). For a large take call `split_recording` first (the big segment is saved on a
   background thread) and then `stop_recording`, which then only writes the small last segment.
@@ -186,9 +186,11 @@ Notes:
   for frame even when its arrival times jitter (an early frame spends the credit a late one left),
   a faster stream is thinned to that rate, and frames that pile up after a pause pass at most
   three at a time.
-- The Retargeter, like the SDK and Isaac examples, scales the hips position and does not align
-  the feet with the ground unless `offset_to_ground` is set, so the robot drifts away from the
-  skeleton by about 10 cm per meter of travel; this is SDK behaviour and is not corrected here.
+- The Retargeter, like the SDK and Isaac examples, scales the hips position (by its
+  `human_scale_table` entry and the body scale) and does not align the feet with the ground unless
+  `offset_to_ground` is set. When the actor walks, the robot therefore covers a scaled distance and
+  moves apart from the skeleton in proportion to the distance travelled; this is SDK behaviour and
+  is not corrected here.
 - `source_preset:=auto` uses the `preset` field of the incoming `MocapFrame`; legacy 51-body
   streams therefore retarget as `movinman` without extra configuration.
 - `urdf_file` replaces the default `g1_custom_collision_29dof.urdf` (plain URDF read with `cat`,
