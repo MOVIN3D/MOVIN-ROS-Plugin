@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>movin_sdk_python_vendor</name>
-  <version>2.0.0</version>
+  <version>3.0.0</version>
   <description>Vendors the MOVIN SDK Python package (git submodule MOVIN-SDK-Python, Apache-2.0) into the colcon workspace so ROS 2 nodes can import movin_sdk_python without pip</description>
   <maintainer email="dk.jang@movin3d.com">DK Jang</maintainer>
   <license file="MOVIN-SDK-Python/LICENSE">Apache-2.0</license>

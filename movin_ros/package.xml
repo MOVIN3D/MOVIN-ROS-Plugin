@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>movin_ros</name>
-  <version>2.0.0</version>
+  <version>3.0.0</version>
   <description>Receive, record and replay real-time motion capture from MOVIN Studio in ROS 2: mocap_node publishes movin_msgs/MocapFrame, a TF skeleton and status, records the raw OSC stream to SDK-compatible .pkl files and replays them</description>
   <maintainer email="dk.jang@movin3d.com">DK Jang</maintainer>
   <license>Apache-2.0</license>

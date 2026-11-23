@@ -148,8 +148,9 @@ ros2 launch movin_ros mocap.launch.py robot:=unitree_g1 human_height:=1.66 robot
 `robot` is `unitree_g1` (29 joints) or `unitree_g1_with_hands` (43). `human_height` sizes the
 actor to the 1.8 m reference body the SDK's IK tables were tuned for: `auto` (default) measures the
 actor from the streamed bones, a number is the actor's standing height in meters (body scale
-`1.8 / human_height`; `retarget_node` logs the scale). Earlier versions read the number the other
-way round (default `1.75`); to reproduce such a result pass `3.24 / h` (about `1.85` for `1.75`).
+`1.8 / human_height`; `retarget_node` logs the scale). Versions before 3.0.0 read the number the
+other way round (default `1.75`); to reproduce such a result pass `3.24 / h` (about `1.85` for
+`1.75`).
 In Docker use the `WITH_RETARGETING=1` image. Without the extra `retarget_node` exits with a clear
 message and the core node is unaffected.
 

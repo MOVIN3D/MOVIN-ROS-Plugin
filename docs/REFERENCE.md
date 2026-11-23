@@ -176,9 +176,10 @@ Notes:
   whenever it changes. The node parameter is dynamically typed so that `auto`, a launch argument
   string (`human_height:=1.66`) and a number (`-p human_height:=1.66`, YAML) all work; anything
   else is fatal, and a height outside 0.5 to 3 m is warned about.
-- **Changed meaning of a numeric `human_height`.** Earlier versions (default `1.75`) scaled the
-  targets by `human_height / 1.8`, the inverse of today's `1.8 / human_height`. To reproduce a
-  result retargeted with an old value `h`, pass `3.24 / h` (`1.8² / h`; about `1.85` for `1.75`).
+- **Changed meaning of a numeric `human_height` in 3.0.0.** Earlier versions (default `1.75`)
+  scaled the targets by `human_height / 1.8`, the inverse of today's `1.8 / human_height`. To
+  reproduce a result retargeted with an old value `h`, pass `3.24 / h` (`1.8² / h`; about `1.85`
+  for `1.75`).
 - `robot_offset` (launch argument: X offset in meters; node parameter `robot_offset`:
   `[x, y, z]`) places the robot next to the skeleton.
 - `max_rate_hz` (default `60.0`, `0` = no limit) bounds the average retargeting rate with a token
